@@ -45,33 +45,35 @@ public class Printer {
     }
 
     public static void printArray(int[][] arr) {
-        StringBuilder content = new StringBuilder().append("[\n");
+        StringBuilder content = new StringBuilder().append('[');
         for (int[] subArr : arr) {
             content.append("  ").append(doPrintArray(subArr)).append(",\n");
         }
         if (content.length() > 1) {
             content.delete(content.length() - 2, content.length());
         }
-        content.append("\n]");
+        content.append(']');
         System.out.println(content.toString());
     }
 
     // ======================== List ======================== //
-    public static <T> String printList(List<T> list) {
+    public static <T> void printList(List<T> list) {
+        System.out.println(doPrintList(list));
+    }
+
+    private static <T> String doPrintList(List<T> list) {
         StringBuilder content = new StringBuilder().append('[');
         for (T member : list) {
             if (member instanceof List) {
-                content.append(printList((List<T>) member));
+                content.append(doPrintList((List<T>) member)).append(",\n");
             } else {
-                content.append(String.valueOf(member));
+                content.append(String.valueOf(member)).append(", ");
             }
-            content.append(", ");
         }
         if (content.length() > 1) {
             content.delete(content.length() - 2, content.length());
         }
         content.append(']');
-        System.out.println(content.toString());
         return content.toString();
     }
 }
