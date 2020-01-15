@@ -5,6 +5,8 @@ import helper.Printer;
 import java.util.Arrays;
 
 /**
+ * [3] Longest Substring Without Repeating Characters
+ *
  * Description:
  * Given a string, find the length of the longest substring without repeating characters.
  *
