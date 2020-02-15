@@ -8,31 +8,52 @@ public class Printer {
         System.out.println(num);
     }
 
+    public static void printNum(long num) {
+        System.out.println(num);
+    }
+
     // ======================== String ======================== //
     public static void printString(String str) {
         System.out.println(str);
     }
 
-    // ======================== ListNode ======================== //
-    public static void printListNode(ListNode head) {
-        if (head == null) {
-            System.out.println("[NULL HEAD]");
-            return;
-        }
-        while (head.next != null) {
-            System.out.print(head.val + " -> ");
-            head = head.next;
-        }
+    // ======================== Boolean ======================== //
+    public static void printBool(boolean bool) {
+        System.out.println(bool);
+    }
 
-        System.out.print(head.val + "\n");
+    // ======================== ListNode ======================== //
+    public static String getListNodeString(ListNode head) {
+        if (head == null) {
+            return "[NULL HEAD]";
+        } else {
+            return head.toString();
+        }
+    }
+
+    public static void printListNode(ListNode head) {
+        System.out.println(getListNodeString(head));
+    }
+
+    // ======================== TreeNode ======================== //
+    public static String getTreeString(TreeNode root) {
+        if (root == null) {
+            return "[NULL ROOT]";
+        } else {
+            return root.toString();
+        }
+    }
+
+    public static void printTree(TreeNode root) {
+        System.out.println(getTreeString(root));
     }
 
     // ======================== Array ======================== //
     public static void printArray(int[] arr) {
-        System.out.println(doPrintArray(arr));
+        System.out.println(getArrayString(arr));
     }
 
-    private static String doPrintArray(int[] arr) {
+    public static String getArrayString(int[] arr) {
         StringBuilder content = new StringBuilder().append('[');
         for (int num : arr) {
             content.append(num).append(",");
@@ -47,7 +68,7 @@ public class Printer {
     public static void printArray(int[][] arr) {
         StringBuilder content = new StringBuilder().append('[');
         for (int[] subArr : arr) {
-            content.append("  ").append(doPrintArray(subArr)).append(",\n");
+            content.append(getArrayString(subArr)).append(",\n");
         }
         if (content.length() > 1) {
             content.delete(content.length() - 2, content.length());
@@ -58,14 +79,16 @@ public class Printer {
 
     // ======================== List ======================== //
     public static <T> void printList(List<T> list) {
-        System.out.println(doPrintList(list));
+        System.out.println(getListString(list));
     }
 
-    private static <T> String doPrintList(List<T> list) {
+    private static <T> String getListString(List<T> list) {
         StringBuilder content = new StringBuilder().append('[');
         for (T member : list) {
             if (member instanceof List) {
-                content.append(doPrintList((List<T>) member)).append(",\n");
+                content.append(getListString((List<T>) member)).append(",\n");
+            } else if (member instanceof int[]) {
+                content.append(getArrayString((int[])member)).append(",\n");
             } else {
                 content.append(String.valueOf(member)).append(", ");
             }
