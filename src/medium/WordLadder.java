@@ -50,6 +50,8 @@ import java.util.Set;
  * Result:
  * Solution 1: Accepted (478ms)
  * Solution 2: Accepted (55ms)
+ * Solution 3: Accepted (44ms)
+ * Solution 4: Accepted (14ms)
  */
 public class WordLadder {
     /**
@@ -197,14 +199,174 @@ public class WordLadder {
             return word.substring(0, wildCardIndex) + "*" + word.substring(wildCardIndex + 1);
         }
     }
+
+    /**
+     * Solution 3: Bidirectional BFS
+     * Time Complexity: O(M*N) (M denotes len(word), N denotes len(wordList))
+     * Space Complexity: O(M*N)
+     */
+    class Solution3 {
+        public int ladderLength(String beginWord, String endWord, List<String> wordList) {
+            int wordLen = beginWord.length();
+            boolean hasEndWord = false;
+            Map<String, List<String>> adjacentWordPatterns = new HashMap<>();
+            for (String word : wordList) {
+                if (word.equals(endWord)) {
+                    hasEndWord = true;
+                }
+                for (int i = 0; i < wordLen; i++) {
+                    String pattern = getAdjacentPattern(word, i);
+                    adjacentWordPatterns.computeIfAbsent(pattern, v -> new ArrayList<>()).add(word);
+                }
+            }
+            // If end word is not included in the dictionary
+            if (!hasEndWord) {
+                return 0;
+            }
+
+            // Compute adjacent patterns for begin word as well
+            boolean isStartWordReachable = false;
+            for (int i = 0; i < wordLen; i++) {
+                String pattern = getAdjacentPattern(beginWord, i);
+                List<String> matchedWords;
+                if ((matchedWords = adjacentWordPatterns.get(pattern)) != null) {
+                    matchedWords.add(beginWord);
+                    isStartWordReachable = true;
+                } else {
+                    matchedWords = new ArrayList<>();
+                    matchedWords.add(beginWord);
+                    adjacentWordPatterns.put(pattern, matchedWords);
+                }
+            }
+            // If start word is unreachable
+            if (!isStartWordReachable) {
+                return 0;
+            }
+
+            LinkedList<String> topDownStack = new LinkedList<>();
+            LinkedList<String> bottomUpStack = new LinkedList<>();
+            topDownStack.push(beginWord);
+            bottomUpStack.push(endWord);
+
+            HashMap<String, Integer> topDownVisited = new HashMap<>();
+            HashMap<String, Integer> bottomUpVisited = new HashMap<>();
+            topDownVisited.put(beginWord, 1);
+            bottomUpVisited.put(endWord, 1);
+
+            int topDownLadderLength = 1;
+            int bottomUpLadderLength = 1;
+
+            while (!topDownStack.isEmpty() || !bottomUpStack.isEmpty()) {
+                // Bottom-up BFS
+                int bottomUpResult = proceedToNextLevel(adjacentWordPatterns, bottomUpStack,
+                        bottomUpVisited, topDownVisited, bottomUpLadderLength++, wordLen);
+                if (bottomUpResult != -1) {
+                    return bottomUpResult;
+                }
+                // Top-down BFS
+                int topDownResult = proceedToNextLevel(adjacentWordPatterns, topDownStack,
+                        topDownVisited, bottomUpVisited, topDownLadderLength++, wordLen);
+                if (topDownResult != -1) {
+                    return topDownResult;
+                }
+            }
+            return 0;
+        }
+        private int proceedToNextLevel(Map<String, List<String>> adjacentWordPatterns, LinkedList<String> currStack,
+                                       Map<String, Integer> currVisited, Map<String, Integer> otherVisited,
+                                       int currLadderLength, int wordLen) {
+            int currStackSize = currStack.size();
+            for (int i = 0; i < currStackSize; i++) {
+                String word = currStack.poll();
+                for (int j = 0; j < wordLen; j++) {
+                    List<String> adjacentWords = adjacentWordPatterns.get(getAdjacentPattern(word, j));
+                    for (String adjacentWord : adjacentWords) {
+                        Integer otherLadderLength;
+                        if ((otherLadderLength = otherVisited.get(adjacentWord)) != null) {
+                              return otherLadderLength + currLadderLength;
+                        }
+                        if (!currVisited.containsKey(adjacentWord)) {
+                            currVisited.put(adjacentWord, currLadderLength + 1);
+                            currStack.offer(adjacentWord);
+                        }
+                    }
+                }
+            }
+            return -1;
+        }
+        private String getAdjacentPattern(String word, int wildCardIndex) {
+            return word.substring(0, wildCardIndex) + "*" + word.substring(wildCardIndex + 1);
+        }
+    }
+
+    /**
+     * Solution 4: Bidirectional BFS with better adjacency-lookup strategy
+     * Time Complexity: O(M*N) (M denotes len(word), N denotes len(wordList))
+     * Space Complexity: O(N)
+     */
+    class Solution4 {
+        public int ladderLength(String beginWord, String endWord, List<String> wordList) {
+            if (wordList.size() == 0 || beginWord.equals(endWord)) {
+                return 0;
+            }
+            Set<String> wordSet = new HashSet<>(wordList);
+            if (!wordSet.contains(endWord)) {
+                // If end word is not included in the dictionary
+                return 0;
+            }
+            Set<String> beginSet = new HashSet<>(wordList.size()), endSet = new HashSet<>(wordList.size());
+            beginSet.add(beginWord);
+            endSet.add(endWord);
+            wordSet.remove(beginWord);
+            wordSet.remove(endWord);
+
+            int ladderLength = 2;
+            while (!beginSet.isEmpty() && !endSet.isEmpty()) {
+                Set<String> nextLevelSet = new HashSet<>();
+                if (beginSet.size() > endSet.size()) {
+                    // In each iteration, we only proceed on either one of
+                    // the two sided movements (top-down or bottom-up),
+                    // and we always choose to proceed on the end with less
+                    // remaining options
+                    Set<String> tmpSet = endSet;
+                    endSet = beginSet;
+                    beginSet = tmpSet;
+                }
+                for (String word : beginSet) {
+                    char[] chars = word.toCharArray();
+                    for (int i = 0; i < chars.length; i++) {
+                        char originalChar = chars[i];
+                        for (char replaceChar = 'a'; replaceChar < 'z'; replaceChar++) {
+                            chars[i] = replaceChar;
+                            String generatedStr = new String(chars);
+                            if (endSet.contains(generatedStr)) {
+                                return ladderLength;
+                            }
+                            if (wordSet.contains(generatedStr)) {
+                                nextLevelSet.add(generatedStr);
+                                // Avoid re-visit
+                                wordSet.remove(generatedStr);
+                            }
+                            chars[i] = originalChar;
+                        }
+                    }
+                }
+                ladderLength += 1;
+                beginSet = nextLevelSet;
+            }
+            return 0;
+        }
+    }
     public static void main(String[] args) {
         List<String> wordList = Arrays.asList("hot","dot","dog","lot","log","cog");
         Printer.printNum(new WordLadder().new Solution1().ladderLength("hit", "cog", wordList));
-        wordList = Arrays.asList("hot","dot","dog","lot","log","cog");
         Printer.printNum(new WordLadder().new Solution2().ladderLength("hit", "cog", wordList));
+        Printer.printNum(new WordLadder().new Solution3().ladderLength("hit", "cog", wordList));
+        Printer.printNum(new WordLadder().new Solution4().ladderLength("hit", "cog", wordList));
 
         wordList = Arrays.asList("hot","dot","dog","lot","log");
         Printer.printNum(new WordLadder().new Solution1().ladderLength("hit", "cog", wordList));
         Printer.printNum(new WordLadder().new Solution2().ladderLength("hit", "cog", wordList));
+        Printer.printNum(new WordLadder().new Solution3().ladderLength("hit", "cog", wordList));
     }
 }
