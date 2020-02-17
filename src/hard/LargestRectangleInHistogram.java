@@ -88,62 +88,155 @@ public class LargestRectangleInHistogram {
             return largestArea;
         }
     }
+
+    /**
+     * Solution 3: Segment Tree + Divide and Conquer
+     * Time Complexity: O(NlogN)
+     * Space Complexity: O(2k - 1) (k = 2 ^ ⌈log2(n)⌉)
+     *     Reasoning:
+     *     (1) height of a segment tree: h = ⌈log2(n)⌉ + 1
+     *     (2) size of a complete segment tree: 1 + 2 + 4 + 8 + ... + (2 ^ (h - 1))
+     *                                        = 2 ^ h - 1
+     *                                        = 2 * (2 ^ ⌈log2(n)⌉) - 1
+     * Result: Accepted (12ms)
+     */
     class Solution3 {
-        class IntervalTree {
-            IntervalTree left;
-            IntervalTree right;
+        class SegmentTree {
+            SegmentTree left;
+            SegmentTree right;
             int from;
             int to;
-            int minInRange = Integer.MAX_VALUE;
-            IntervalTree(int from, int to) {
+            int min = -1;
+            SegmentTree(int from, int to) {
                 this.from = from;
                 this.to = to;
             }
         }
         public int largestRectangleArea(int[] heights) {
-            IntervalTree root = new IntervalTree(0, heights.length - 1);
+            SegmentTree root = new SegmentTree(0, heights.length - 1);
             for (int i = 0; i < heights.length; i++) {
                 updateInterval(root, heights, i);
             }
+            return getMaxArea(root, heights, 0, heights.length - 1);
         }
-        private void updateInterval(IntervalTree node, int[] heights, int index) {
+        private void updateInterval(SegmentTree node, int[] heights, int index) {
             if (node.from == node.to) {
-                node.minInRange = heights[index];
+                node.min = index;
                 return;
             }
-            int mid = node.from + ((node.from - node.to) >> 1);
+            int mid = node.from + ((node.to - node.from) >> 1);
             if (index <= mid) {
                 if (node.left == null) {
-                    node.left = new IntervalTree(node.from, mid);
+                    node.left = new SegmentTree(node.from, mid);
                 }
                 updateInterval(node.left, heights, index);
             } else {
                 if (node.right == null) {
-                    node.right = new IntervalTree(mid + 1, node.to);
+                    node.right = new SegmentTree(mid + 1, node.to);
                 }
-                updateInterval(node.left, heights, index);
+                updateInterval(node.right, heights, index);
             }
-            int leftMin = node.left == null ? Integer.MAX_VALUE : node.left.minInRange;
-            int rightMin = node.right == null ? Integer.MAX_VALUE : node.right.minInRange;
-            node.minInRange = Math.min(leftMin, rightMin);
+
+            int minHeight = Integer.MAX_VALUE;
+            if (node.left != null) {
+                node.min = node.left.min;
+                minHeight = heights[node.min];
+            }
+            if (node.right != null) {
+                node.min = heights[node.right.min] < minHeight ? node.right.min : node.min;
+            }
         }
-        private int getIntervalMin(IntervalTree node, int from, int to) {
+        private int getIntervalMin(SegmentTree node, int[] heights, int from, int to) {
             if (from <= node.from && node.to <= to) {
-                return node.minInRange;
+                return node.min;
             }
-            int mid = node.from + ((node.from - node.to) >> 1);
-            int leftMin = Integer.MAX_VALUE, rightMin = Integer.MAX_VALUE;
+            int mid = node.from + ((node.to - node.from) >> 1);
+            int minHeight = Integer.MAX_VALUE, minIndex = -1;
             if (from <= mid) {
-                leftMin = getIntervalMin(node.left, from, to);
+                int index = getIntervalMin(node.left, heights, from, to);
+                minIndex = index;
+                minHeight = heights[index];
             }
             if (to > mid) {
-                rightMin = getIntervalMin(node.right, from, to);
+                int index = getIntervalMin(node.right, heights, from, to);
+                minIndex = heights[index] <= minHeight ? index : minIndex;
             }
-            return Math.min(leftMin, rightMin);
+            return minIndex;
         }
-        private int getMaxArea(IntervalTree root, int[] heights, int from, int to) {
-            int minInRange = getIntervalMin(root, from, to);
-            // Min should be index
+        private int getMaxArea(SegmentTree root, int[] heights, int from, int to) {
+            if (to < from) {
+                return 0;
+            }
+            int minIndex = getIntervalMin(root, heights, from, to);
+            int maxArea = heights[minIndex] * (to - from + 1);
+            maxArea = Math.max(maxArea, getMaxArea(root, heights, from, minIndex - 1));
+            maxArea = Math.max(maxArea, getMaxArea(root, heights, minIndex + 1, to));
+            return maxArea;
+        }
+    }
+    /**
+     * Solution 4: Segment Tree (Array representation) + Divide and Conquer
+     * Time Complexity: O(NlogN)
+     * Space Complexity: O(4N)
+     * Result: Accepted (10ms)
+     */
+    class Solution4 {
+        public int largestRectangleArea(int[] heights) {
+            int N = heights.length;
+            int[] segTree = new int[N << 2];    // The max size of the segment tree is 2 * (2 ^ ⌈log2(N)⌉) - 1,
+                                                // which is close to N << 2 in worst cases
+            for (int i = 0; i < N; i++) {
+                // Note that currIdx starts from 1, i.e. the root is at index 1
+                updateInterval(segTree, heights, 0, N - 1, 1, i);
+            }
+            return getMaxArea(segTree, heights, 0, N - 1);
+        }
+        private void updateInterval(int[] segTree, int[] heights, int currFrom, int currTo, int segIdx, int heightIdx) {
+            if (currFrom >= currTo) {
+                segTree[segIdx] = heightIdx;
+                return;
+            }
+            int mid = currFrom + ((currTo - currFrom) >> 1);
+            if (heightIdx <= mid) {
+                updateInterval(segTree, heights, currFrom, mid, segIdx << 1, heightIdx);
+            } else {
+                updateInterval(segTree, heights, mid + 1, currTo,segIdx << 1 | 1, heightIdx);
+            }
+            int lMin = segTree[segIdx << 1], rMin = segTree[segIdx << 1 | 1];
+            segTree[segIdx] = heights[lMin] <= heights[rMin] ? lMin : rMin;
+        }
+        private int getIntervalMin(int[] segTree, int[] heights, int queryFrom, int queryTo,
+                                   int currFrom, int currTo, int currIdx) {
+            if (queryFrom <= currFrom && currTo <= queryTo) {
+                return segTree[currIdx];
+            }
+            int mid = currFrom + ((currTo - currFrom) >> 1);
+            int minHeight = Integer.MAX_VALUE, minIndex = -1;
+            if (queryFrom <= mid) {
+                int lMin = getIntervalMin(segTree, heights, queryFrom, queryTo, currFrom,
+                        mid, currIdx << 1);
+                minIndex = lMin;
+                minHeight = heights[lMin];
+            }
+            if (queryTo > mid) {
+                int rMin = getIntervalMin(segTree, heights, queryFrom, queryTo, mid + 1,
+                        currTo, currIdx << 1 | 1);
+                minIndex = heights[rMin] <= minHeight ? rMin : minIndex;
+            }
+            return minIndex;
+        }
+        private int getMaxArea(int[] segTree, int[] heights, int from, int to) {
+            if (to < from) {
+                return 0;
+            }
+            if (from == to) {
+                return heights[from];
+            }
+            int minIndex = getIntervalMin(segTree, heights, from, to, 0, heights.length - 1, 1);
+            int maxArea = heights[minIndex] * (to - from + 1);
+            maxArea = Math.max(maxArea, getMaxArea(segTree, heights, from, minIndex - 1));
+            maxArea = Math.max(maxArea, getMaxArea(segTree, heights, minIndex + 1, to));
+            return maxArea;
         }
     }
     public static void main(String[] args) {
@@ -151,9 +244,23 @@ public class LargestRectangleInHistogram {
                 .largestRectangleArea(new int[]{2,1,5,6,2,3}));
         Printer.printNum(new LargestRectangleInHistogram().new Solution2()
                 .largestRectangleArea(new int[]{2,1,5,6,2,3}));
+        Printer.printNum(new LargestRectangleInHistogram().new Solution3()
+                .largestRectangleArea(new int[]{2,1,5,6,2,3}));
+        Printer.printNum(new LargestRectangleInHistogram().new Solution4()
+                .largestRectangleArea(new int[]{2,1,5,6,2,3}));
+
         Printer.printNum(new LargestRectangleInHistogram().new Solution1()
                 .largestRectangleArea(new int[]{5,4,1,2}));
         Printer.printNum(new LargestRectangleInHistogram().new Solution2()
                 .largestRectangleArea(new int[]{5,4,1,2}));
+        Printer.printNum(new LargestRectangleInHistogram().new Solution3()
+                .largestRectangleArea(new int[]{5,4,1,2}));
+        Printer.printNum(new LargestRectangleInHistogram().new Solution4()
+                .largestRectangleArea(new int[]{5,4,1,2}));
+
+        Printer.printNum(new LargestRectangleInHistogram().new Solution3()
+                .largestRectangleArea(new int[]{0,0,2147483647}));
+        Printer.printNum(new LargestRectangleInHistogram().new Solution4()
+                .largestRectangleArea(new int[]{0,0,2147483647}));
     }
 }
