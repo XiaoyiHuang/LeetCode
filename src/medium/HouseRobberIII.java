@@ -38,6 +38,8 @@ import helper.TreeNode;
  *
  * Output: 9
  * Explanation: Maximum amount of money the thief can rob = 4 + 5 = 9.
+ *
+ * Result: Accepted (0ms)
  */
 public class HouseRobberIII {
     public int rob(TreeNode root) {
