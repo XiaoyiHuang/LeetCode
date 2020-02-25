@@ -124,7 +124,7 @@ public class CoinChange {
      * Time Complexity: O(k ^ N) (k is the total amount)
      *                  (Since every coin denomination could have s/c(i) values, the total number of
      *                   possible combinations is:
-     *                        [k/c(1)] * [k/c(2)] * ... * [k/c(N)] = (k^N) / [c(1)*c(2)*...*c(N)].
+     *                        [k/c(1)] * [k/c(2)] * ... * [k/c(N)] = (k^N) / [c(1) * c(2) * ... * c(N)].
      *                   However, as our strategy starts with the largest possible coin denominations,
      *                   we make sure that the minimum result are retrieved "as soon as possible".
      *                   Therefore, many of the above combinations are in fact skipped in practice.)
