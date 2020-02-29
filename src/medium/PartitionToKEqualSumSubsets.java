@@ -154,7 +154,7 @@ public class PartitionToKEqualSumSubsets {
     }
 
     /**
-     * Solution 3: DFS + Memoization (Top-down)
+     * Solution 3: Dynamic Programming (Top-down)
      * Time Complexity: O(N * 2 ^ N) (N + N + ... + N, repeated for 2 ^ N times in the worst case)
      * Space Complexity: O(2 ^ N)
      * Result: Accepted (4ms)
